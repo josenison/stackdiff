@@ -1,12 +1,12 @@
-"""Unit tests for the provider registry."""
+"""Tests for the provider registry."""
+
 import pytest
-from stackdiff.providers.registry import (
-    get_provider,
-    register,
-    available_providers,
-)
+
+from stackdiff.providers.registry import register, get_provider, available_providers
 from stackdiff.providers.aws import AWSProvider
 from stackdiff.providers.gcp import GCPProvider
+from stackdiff.providers.azure import AzureProvider
+from stackdiff.providers.terraform import TerraformProvider
 
 
 class TestRegistry:
@@ -16,37 +16,44 @@ class TestRegistry:
     def test_gcp_provider_registered(self):
         assert "gcp" in available_providers()
 
+    def test_azure_provider_registered(self):
+        assert "azure" in available_providers()
+
+    def test_terraform_provider_registered(self):
+        assert "terraform" in available_providers()
+
     def test_get_aws_provider_returns_correct_type(self):
-        p = get_provider("aws", region="eu-west-1")
-        assert isinstance(p, AWSProvider)
+        cls = get_provider("aws")
+        assert cls is AWSProvider
 
     def test_get_gcp_provider_returns_correct_type(self):
-        p = get_provider("gcp", project="test-project")
-        assert isinstance(p, GCPProvider)
-        assert p.project == "test-project"
+        cls = get_provider("gcp")
+        assert cls is GCPProvider
+
+    def test_get_azure_provider_returns_correct_type(self):
+        cls = get_provider("azure")
+        assert cls is AzureProvider
+
+    def test_get_terraform_provider_returns_correct_type(self):
+        cls = get_provider("terraform")
+        assert cls is TerraformProvider
 
     def test_unknown_provider_raises_key_error(self):
-        with pytest.raises(KeyError, match="Unknown provider 'azure'"):
-            get_provider("azure")
+        with pytest.raises(KeyError, match="unknown_cloud"):
+            get_provider("unknown_cloud")
 
     def test_error_message_lists_available_providers(self):
-        with pytest.raises(KeyError) as exc_info:
-            get_provider("nonexistent")
-        assert "aws" in str(exc_info.value)
-        assert "gcp" in str(exc_info.value)
+        with pytest.raises(KeyError, match="aws"):
+            get_provider("bogus")
 
-    def test_custom_provider_registration(self):
-        from stackdiff.providers.base import StackProvider, StackState
+    def test_available_providers_returns_sorted_list(self):
+        providers = available_providers()
+        assert providers == sorted(providers)
 
-        class DummyProvider(StackProvider):
-            @property
-            def name(self):
-                return "dummy"
+    def test_register_custom_provider(self):
+        class MyProvider:
+            pass
 
-            def fetch_state(self, stack_name: str) -> StackState:
-                return StackState(stack_name=stack_name, resources=[])
-
-        register("dummy", lambda **kw: DummyProvider())
-        p = get_provider("dummy")
-        assert isinstance(p, DummyProvider)
-        assert "dummy" in available_providers()
+        register("myprovider", MyProvider)
+        assert get_provider("myprovider") is MyProvider
+        assert "myprovider" in available_providers()

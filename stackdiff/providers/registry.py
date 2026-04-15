@@ -1,48 +1,39 @@
-"""Provider registry — maps provider names to factory callables."""
-from __future__ import annotations
+"""Provider registry for stackdiff."""
 
-from typing import Callable, Dict, Type
+from typing import Dict, Type
 
-from stackdiff.providers.base import StackProvider
+from stackdiff.providers.aws import AWSProvider
+from stackdiff.providers.gcp import GCPProvider
+from stackdiff.providers.azure import AzureProvider
+from stackdiff.providers.terraform import TerraformProvider
 
-_REGISTRY: Dict[str, Type[StackProvider]] = {}
+_REGISTRY: Dict[str, Type] = {
+    "aws": AWSProvider,
+    "gcp": GCPProvider,
+    "azure": AzureProvider,
+    "terraform": TerraformProvider,
+}
 
 
-def register(name: str, provider_cls: Type[StackProvider]) -> None:
-    """Register *provider_cls* under *name*."""
-    _REGISTRY[name] = provider_cls
+def register(name: str, provider_class: Type) -> None:
+    """Register a new provider under *name*."""
+    _REGISTRY[name] = provider_class
 
 
-def get_provider(name: str, **kwargs) -> StackProvider:  # type: ignore[return]
-    """Instantiate and return the provider registered under *name*.
+def get_provider(name: str) -> Type:
+    """Return the provider class for *name*.
 
-    Extra *kwargs* are forwarded to the provider constructor.
-
-    Raises
-    ------
-    KeyError
-        If *name* has not been registered.
+    Raises:
+        KeyError: if the provider is not registered.
     """
     if name not in _REGISTRY:
         raise KeyError(
-            f"Unknown provider '{name}'. Available: {', '.join(available_providers())}"
+            f"Unknown provider '{name}'. "
+            f"Available providers: {', '.join(sorted(_REGISTRY))}"
         )
-    return _REGISTRY[name](**kwargs)
+    return _REGISTRY[name]
 
 
-def available_providers() -> list[str]:
-    """Return the names of all registered providers."""
+def available_providers() -> list:
+    """Return a sorted list of registered provider names."""
     return sorted(_REGISTRY.keys())
-
-
-# ---------------------------------------------------------------------------
-# Built-in provider registrations
-# ---------------------------------------------------------------------------
-
-from stackdiff.providers.aws import AWSProvider  # noqa: E402
-from stackdiff.providers.gcp import GCPProvider  # noqa: E402
-from stackdiff.providers.azure import AzureProvider  # noqa: E402
-
-register("aws", AWSProvider)
-register("gcp", GCPProvider)
-register("azure", AzureProvider)
