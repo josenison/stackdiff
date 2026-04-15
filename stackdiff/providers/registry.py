@@ -1,46 +1,48 @@
-"""Provider registry — maps provider names to their factory functions."""
-from typing import Callable, Dict
-from .base import StackProvider
-from .aws import AWSProvider
-from .gcp import GCPProvider
+"""Provider registry — maps provider names to factory callables."""
+from __future__ import annotations
 
-# Registry maps provider name -> callable(**kwargs) -> StackProvider
-_REGISTRY: Dict[str, Callable[..., StackProvider]] = {}
+from typing import Callable, Dict, Type
 
+from stackdiff.providers.base import StackProvider
 
-def register(name: str, factory: Callable[..., StackProvider]) -> None:
-    """Register a provider factory under *name*."""
-    _REGISTRY[name] = factory
+_REGISTRY: Dict[str, Type[StackProvider]] = {}
 
 
-def get_provider(name: str, **kwargs) -> StackProvider:
-    """Instantiate a registered provider by name.
+def register(name: str, provider_cls: Type[StackProvider]) -> None:
+    """Register *provider_cls* under *name*."""
+    _REGISTRY[name] = provider_cls
+
+
+def get_provider(name: str, **kwargs) -> StackProvider:  # type: ignore[return]
+    """Instantiate and return the provider registered under *name*.
+
+    Extra *kwargs* are forwarded to the provider constructor.
 
     Raises
     ------
     KeyError
-        If *name* is not registered.
+        If *name* has not been registered.
     """
     if name not in _REGISTRY:
-        available = ", ".join(sorted(_REGISTRY))
         raise KeyError(
-            f"Unknown provider '{name}'. Available providers: {available}"
+            f"Unknown provider '{name}'. Available: {', '.join(available_providers())}"
         )
     return _REGISTRY[name](**kwargs)
 
 
-def available_providers():
-    """Return a sorted list of registered provider names."""
+def available_providers() -> list[str]:
+    """Return the names of all registered providers."""
     return sorted(_REGISTRY.keys())
 
 
-# ── built-in registrations ──────────────────────────────────────────────────
-register("aws", lambda **kw: AWSProvider(
-    region=kw.get("region", "us-east-1"),
-    profile=kw.get("profile"),
-))
+# ---------------------------------------------------------------------------
+# Built-in provider registrations
+# ---------------------------------------------------------------------------
 
-register("gcp", lambda **kw: GCPProvider(
-    project=kw["project"],
-    credentials=kw.get("credentials"),
-))
+from stackdiff.providers.aws import AWSProvider  # noqa: E402
+from stackdiff.providers.gcp import GCPProvider  # noqa: E402
+from stackdiff.providers.azure import AzureProvider  # noqa: E402
+
+register("aws", AWSProvider)
+register("gcp", GCPProvider)
+register("azure", AzureProvider)
