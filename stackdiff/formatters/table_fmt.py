@@ -32,6 +32,18 @@ def _row(values: tuple[str, str, str, str], widths: tuple[int, int, int, int]) -
     return f"| {cells} |"
 
 
+def _summary_line(summary: dict) -> str:
+    """Format the summary counts line shown below the table."""
+    parts = []
+    if summary.get("added"):
+        parts.append(f"{summary['added']} added")
+    if summary.get("removed"):
+        parts.append(f"{summary['removed']} removed")
+    if summary.get("modified"):
+        parts.append(f"{summary['modified']} modified")
+    return "  " + ", ".join(parts) if parts else "  No changes"
+
+
 def format_diff(result: DiffResult) -> str:
     if not result.has_changes():
         return "No changes detected."
@@ -53,9 +65,5 @@ def format_diff(result: DiffResult) -> str:
         lines.append(_row(row, widths))
 
     lines.append(sep)
-    summary = result.summary()
-    lines.append(
-        f"  {summary['added']} added, {summary['removed']} removed,"
-        f" {summary['modified']} modified"
-    )
+    lines.append(_summary_line(result.summary()))
     return "\n".join(lines)
