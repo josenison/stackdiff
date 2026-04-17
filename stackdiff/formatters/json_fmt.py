@@ -35,3 +35,15 @@ def format_diff(result: DiffResult, out: TextIO = sys.stdout, indent: int = 2) -
     }
     json.dump(payload, out, indent=indent)
     out.write("\n")
+
+
+def format_diff_to_str(result: DiffResult, indent: int = 2) -> str:
+    """Serialize *result* as a JSON string and return it.
+
+    Convenience wrapper around :func:`format_diff` for callers that need
+    the JSON payload as a string rather than writing to a file-like object.
+    """
+    import io
+    buf = io.StringIO()
+    format_diff(result, out=buf, indent=indent)
+    return buf.getvalue()
