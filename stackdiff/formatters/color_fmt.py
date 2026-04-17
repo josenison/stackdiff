@@ -19,14 +19,21 @@ _SYMBOLS = {
 }
 
 
+def _colorize(text: str, color: str, *, bold: bool = False) -> str:
+    """Wrap *text* with ANSI *color* (and optionally bold) escape codes."""
+    prefix = _BOLD + color if bold else color
+    return f"{prefix}{text}{_RESET}"
+
+
 def format_diff(result: DiffResult, *, color: bool = True) -> str:
+    """Return a human-readable, optionally coloured string for *result*."""
     if not result.has_changes():
         msg = "No changes detected."
-        return f"{_BOLD}{msg}{_RESET}" if color else msg
+        return _colorize(msg, "", bold=True) if color else msg
 
     lines: list[str] = []
     header = f"Diff: {result.summary()}"
-    lines.append(f"{_BOLD}{header}{_RESET}" if color else header)
+    lines.append(_colorize(header, "", bold=True) if color else header)
     lines.append("")
 
     for rd in result.diffs:
