@@ -64,3 +64,14 @@ class TestDOTFormatter:
         result = _make_result([_rdiff("r1", ChangeType.ADDED)])
         out = format_diff(result)
         assert out.strip().endswith("}")
+
+    def test_multiple_resources_all_present(self):
+        """All resource IDs should appear in the output when multiple diffs are provided."""
+        diffs = [
+            _rdiff("bucket-a", ChangeType.ADDED),
+            _rdiff("bucket-b", ChangeType.REMOVED),
+            _rdiff("bucket-c", ChangeType.MODIFIED, attr_changes={"acl": ("private", "public")}),
+        ]
+        out = format_diff(_make_result(diffs))
+        for rid in ("bucket-a", "bucket-b", "bucket-c"):
+            assert rid in out
