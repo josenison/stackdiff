@@ -29,27 +29,32 @@ def _make_result(diffs: list[ResourceDiff]) -> DiffResult:
     return DiffResult(diffs=diffs)
 
 
+def _parse(result: DiffResult) -> dict:
+    """Parse a DiffResult through the Grafana formatter and return the payload dict."""
+    return json.loads(format_diff(result))
+
+
 class TestGrafanaFormatter:
     def test_no_changes_returns_clean_tag(self):
         result = _make_result([])
-        payload = json.loads(format_diff(result))
+        payload = _parse(result)
         assert "clean" in payload["tags"]
         assert "drift" not in payload["tags"]
 
     def test_no_changes_text(self):
         result = _make_result([])
-        payload = json.loads(format_diff(result))
+        payload = _parse(result)
         assert "No infrastructure changes" in payload["text"]
 
     def test_changes_returns_drift_tag(self):
         result = _make_result([_rdiff("i-1", ChangeType.ADDED)])
-        payload = json.loads(format_diff(result))
+        payload = _parse(result)
         assert "drift" in payload["tags"]
         assert "clean" not in payload["tags"]
 
     def test_added_resource_in_text(self):
         result = _make_result([_rdiff("i-1", ChangeType.ADDED)])
-        payload = json.loads(format_diff(result))
+        payload = _parse(result)
         assert "i-1" in payload["text"]
         assert ChangeType.ADDED.value in payload["text"]
 
@@ -58,17 +63,23 @@ class TestGrafanaFormatter:
             _rdiff("i-1", ChangeType.ADDED),
             _rdiff("i-2", ChangeType.REMOVED),
         ])
-        payload = json.loads(format_diff(result))
+        payload = _parse(result)
         assert "i-1" in payload["text"]
         assert "i-2" in payload["text"]
 
     def test_payload_has_time_field(self):
         result = _make_result([])
-        payload = json.loads(format_diff(result))
+        payload = _parse(result)
         assert isinstance(payload["time"], int)
         assert payload["time"] > 0
 
     def test_stackdiff_tag_always_present(self):
         for diffs in [[], [_rdiff("x", ChangeType.ADDED)]]:
-            payload = json.loads(format_diff(_make_result(diffs)))
+            payload = _parse(_make_result(diffs))
             assert "stackdiff" in payload["tags"]
+
+    def test_removed_resource_in_text(self):
+        result = _make_result([_rdiff("i-99", ChangeType.REMOVED)])
+        payload = _parse(result)
+        assert "i-99" in payload["text"]
+        assert ChangeType.REMOVED.value in payload["text"]
