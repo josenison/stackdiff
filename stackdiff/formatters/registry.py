@@ -1,11 +1,11 @@
-"""Formatter registry — maps format names to callable formatters."""
+"""Formatter registry: register and look up output formatters by name."""
 from __future__ import annotations
 
 from typing import Callable
 
 from stackdiff.diff import DiffResult
 
-FormatterFn = Callable[[DiffResult], object]
+FormatterFn = Callable[[DiffResult], str]
 
 _registry: dict[str, FormatterFn] = {}
 _builtins_registered = False
@@ -19,7 +19,7 @@ def register_formatter(name: str, fn: FormatterFn) -> None:
 def get_formatter(name: str) -> FormatterFn:
     """Return the formatter registered as *name*.
 
-    Raises ``KeyError`` if *name* is not registered.
+    Raises ``KeyError`` if no formatter with that name exists.
     """
     _ensure_builtins()
     if name not in _registry:
@@ -37,11 +37,11 @@ def available_formatters() -> list[str]:
 def _ensure_builtins() -> None:
     global _builtins_registered
     if not _builtins_registered:
-        _builtins_registered = True
         _register_builtins()
+        _builtins_registered = True
 
 
-def _register_builtins() -> None:  # noqa: PLR0915
+def _register_builtins() -> None:  # noqa: C901  (acceptable length for registration)
     from stackdiff.formatters import text as _text
     from stackdiff.formatters import json_fmt as _json
     from stackdiff.formatters import yaml_fmt as _yaml
@@ -77,8 +77,9 @@ def _register_builtins() -> None:  # noqa: PLR0915
     from stackdiff.formatters import ansible_fmt as _ansible
     from stackdiff.formatters import tap_fmt as _tap
     from stackdiff.formatters import checkstyle_fmt as _checkstyle
-    from stackdiff.formatters import terraform_plan_fmt as _tf_plan
+    from stackdiff.formatters import terraform_plan_fmt as _terraform_plan
     from stackdiff.formatters import cdktf_fmt as _cdktf
+    from stackdiff.formatters import pulumi_fmt as _pulumi
 
     register_formatter("text", _text.format_diff)
     register_formatter("json", _json.format_diff)
@@ -105,8 +106,8 @@ def _register_builtins() -> None:  # noqa: PLR0915
     register_formatter("grafana", _grafana.format_diff)
     register_formatter("newrelic", _newrelic.format_diff)
     register_formatter("webhook", _webhook.format_diff)
-    register_formatter("csv-summary", _csv_summary.format_diff)
-    register_formatter("junit-summary", _junit_summary.format_diff)
+    register_formatter("csv_summary", _csv_summary.format_diff)
+    register_formatter("junit_summary", _junit_summary.format_diff)
     register_formatter("badge", _badge.format_diff)
     register_formatter("timeline", _timeline.format_diff)
     register_formatter("ndjson", _ndjson.format_diff)
@@ -115,5 +116,6 @@ def _register_builtins() -> None:  # noqa: PLR0915
     register_formatter("ansible", _ansible.format_diff)
     register_formatter("tap", _tap.format_diff)
     register_formatter("checkstyle", _checkstyle.format_diff)
-    register_formatter("terraform-plan", _tf_plan.format_diff)
+    register_formatter("terraform_plan", _terraform_plan.format_diff)
     register_formatter("cdktf", _cdktf.format_diff)
+    register_formatter("pulumi", _pulumi.format_diff)
