@@ -16,6 +16,10 @@ _CHANGE_COLORS = {
 
 _HEADERS = ["Resource ID", "Resource Type", "Change Type", "Environment A", "Environment B"]
 
+_MIN_COL_WIDTH = 10
+_MAX_COL_WIDTH = 60
+_COL_PADDING = 4
+
 
 def format_diff(result: "DiffResult") -> bytes:
     """Return an XLSX workbook as bytes representing the diff result."""
@@ -57,10 +61,11 @@ def format_diff(result: "DiffResult") -> bytes:
             cell = ws.cell(row=row_idx, column=col_idx, value=value)
             cell.fill = fill
 
-    # Auto-size columns
+    # Auto-size columns based on the longest cell content, bounded by min/max widths
     for col in ws.columns:
         max_len = max((len(str(c.value or "")) for c in col), default=0)
-        ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 60)
+        col_width = max(_MIN_COL_WIDTH, min(max_len + _COL_PADDING, _MAX_COL_WIDTH))
+        ws.column_dimensions[col[0].column_letter].width = col_width
 
     buf = io.BytesIO()
     wb.save(buf)
