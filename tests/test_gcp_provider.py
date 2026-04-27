@@ -65,3 +65,13 @@ class TestGCPProvider:
         state = provider.fetch_state("my-deployment")
         rmap = state.resource_map()
         assert set(rmap.keys()) == {"bucket-a", "bucket-b"}
+
+    def test_fetch_state_passes_correct_project_and_deployment(self, provider):
+        """Verify that the client is called with the provider's project and the given deployment name."""
+        raw = [_make_resource("vm-1", "compute.v1.instance", {})]
+        client = _mock_client(raw)
+        provider._client = client
+        provider.fetch_state("target-deployment")
+        client.resources.return_value.list.assert_called_once_with(
+            project="my-project", deployment="target-deployment"
+        )
