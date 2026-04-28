@@ -1,9 +1,4 @@
-"""Formatter registry – maps short names to callable formatters.
-
-Built-in formatters are registered lazily on first access so that
-optional heavy dependencies (openpyxl, etc.) only cause import errors
-when that specific formatter is actually requested.
-"""
+"""Formatter registry — maps format names to callable formatters."""
 from __future__ import annotations
 
 from typing import Callable
@@ -17,14 +12,14 @@ _builtins_registered = False
 
 
 def register_formatter(name: str, fn: FormatterFn) -> None:
-    """Register *fn* under *name*."""
+    """Register a formatter under *name*."""
     _registry[name] = fn
 
 
 def get_formatter(name: str) -> FormatterFn:
-    """Return the formatter registered as *name*.
+    """Return the formatter registered under *name*.
 
-    Raises ``KeyError`` if no formatter with that name exists.
+    Raises KeyError if no formatter is found.
     """
     _ensure_builtins()
     if name not in _registry:
@@ -36,25 +31,21 @@ def get_formatter(name: str) -> FormatterFn:
 
 
 def available_formatters() -> list[str]:
-    """Return a sorted list of registered formatter names."""
+    """Return a sorted list of all registered formatter names."""
     _ensure_builtins()
     return sorted(_registry)
 
 
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
 def _ensure_builtins() -> None:
     global _builtins_registered
     if not _builtins_registered:
-        _builtins_registered = True
         _register_builtins()
+        _builtins_registered = True
 
 
-def _register_builtins() -> None:  # noqa: C901  (intentionally long)
+def _register_builtins() -> None:  # noqa: PLR0915
     from stackdiff.formatters.text import format_diff as text_fmt
-    from stackdiff.formatters.json_fmt import format_diff as json_fmt
+    from stackdiff.formatters.json_fmt import format_diff_to_str as json_fmt
     from stackdiff.formatters.yaml_fmt import format_diff as yaml_fmt
     from stackdiff.formatters.html_fmt import format_diff as html_fmt
     from stackdiff.formatters.csv_fmt import format_diff as csv_fmt
@@ -91,10 +82,11 @@ def _register_builtins() -> None:  # noqa: C901  (intentionally long)
     from stackdiff.formatters.terraform_plan_fmt import format_diff as terraform_plan_fmt
     from stackdiff.formatters.cdktf_fmt import format_diff as cdktf_fmt
     from stackdiff.formatters.pulumi_fmt import format_diff as pulumi_fmt
-    from stackdiff.formatters.cloudformation_fmt import format_diff as cloudformation_fmt
+    from stackdiff.formatters.cloudformation_fmt import format_diff as cfn_fmt
     from stackdiff.formatters.shortlog_fmt import format_diff as shortlog_fmt
     from stackdiff.formatters.html_summary_fmt import format_diff as html_summary_fmt
     from stackdiff.formatters.graphml_fmt import format_diff as graphml_fmt
+    from stackdiff.formatters.diff_stat_fmt import format_diff as diff_stat_fmt
 
     _registry.update({
         "text": text_fmt,
@@ -135,8 +127,9 @@ def _register_builtins() -> None:  # noqa: C901  (intentionally long)
         "terraform-plan": terraform_plan_fmt,
         "cdktf": cdktf_fmt,
         "pulumi": pulumi_fmt,
-        "cloudformation": cloudformation_fmt,
+        "cloudformation": cfn_fmt,
         "shortlog": shortlog_fmt,
         "html-summary": html_summary_fmt,
         "graphml": graphml_fmt,
+        "diff-stat": diff_stat_fmt,
     })
