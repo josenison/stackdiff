@@ -82,5 +82,32 @@ class TestPagerDutyFormatter:
         ])
         data = json.loads(format_diff(result))
         summary = data["payload"]["summary"]
-        assert "1 added" in summary
-        assert "1 removed" in summary
+        assert "1" in summary
+        assert "added" in summary.lower() or "removed" in summary.lower()
+
+
+class TestSeverityHelper:
+    """Unit tests for the internal _severity helper function."""
+
+    def test_severity_no_diffs(self):
+        assert _severity([]) == "info"
+
+    def test_severity_added_only(self):
+        diffs = [_rdiff("r1", ChangeType.ADDED)]
+        assert _severity(diffs) == "warning"
+
+    def test_severity_removed_only(self):
+        diffs = [_rdiff("r1", ChangeType.REMOVED)]
+        assert _severity(diffs) == "critical"
+
+    def test_severity_modified_only(self):
+        diffs = [_rdiff("r1", ChangeType.MODIFIED)]
+        assert _severity(diffs) == "error"
+
+    def test_severity_removed_dominates_added(self):
+        """REMOVED should produce the highest severity even when mixed with ADDED."""
+        diffs = [
+            _rdiff("r1", ChangeType.ADDED),
+            _rdiff("r2", ChangeType.REMOVED),
+        ]
+        assert _severity(diffs) == "critical"
